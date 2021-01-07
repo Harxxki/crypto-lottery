@@ -6,7 +6,7 @@ contract LotteryContract {
     uint price = 0.05 ether;
     uint prize = 0.1 ether;
     struct Lottery {
-        uint lotteryNumber;
+        uint16 lotteryNumber;
         bool isSold;
         bool isWon;
         address purchaser;
@@ -36,8 +36,8 @@ contract LotteryContract {
         for (uint i = 0; i < lotteryCollection.length; i++){
             if (!lotteryCollection[i].isSold){
                 isSoldOut = false;
-                require(!isSoldOut);
-                _;
+                // require(!isSoldOut);
+                // _;
             }
         }
         require(isSoldOut);
@@ -46,18 +46,20 @@ contract LotteryContract {
     
     function createLottery(uint _number, uint _winNumber) public onlySeller {
         require(_winNumber <= _number);
-        for(uint i = 0; i < _number; i++){ lotteryCollection.push(Lottery(i, false, false, address(0))); }
+        Lottery[_number] _lotteryCollection;
+        for(uint16 i = 0; i < _number; i++){ _lotteryCollection.push(Lottery(i, false, false, address(0))); }
         uint _counter = 0;
         uint _randNonce = 0;
         uint _rand;
         while (_counter < _winNumber) {
-            _rand = randMod(_randNonce, _winNumber);
-            if (lotteryCollection[_rand].isWon == false){
-                lotteryCollection[_rand].isWon = true;
+            _rand = randMod(_randNonce, _number);
+            _randNonce++;
+            if (_lotteryCollection[_rand].isWon == false){
+                _lotteryCollection[_rand].isWon = true;
                 _counter++;
-                _randNonce++;
             }
         }
+        lotteryCollection = _lotteryCollection;
     }
     
     function buy(uint _randNonce) public onlyNotSoldOut payable {
