@@ -1,5 +1,7 @@
 pragma solidity ^0.5.0;
 
+// TODO 賞金用と購入用を分けてお財布を管理する
+
 contract LotteryContract {
     
     address payable seller;
@@ -36,42 +38,42 @@ contract LotteryContract {
         for (uint i = 0; i < lotteryCollection.length; i++){
             if (!lotteryCollection[i].isSold){
                 isSoldOut = false;
-                // require(!isSoldOut);
-                // _;
+                break;
             }
         }
-        require(isSoldOut);
+        require(!isSoldOut);
         _;
     }
     
     function createLottery(uint _number, uint _winNumber) public onlySeller {
         require(_winNumber <= _number);
-        Lottery[_number] _lotteryCollection;
-        for(uint16 i = 0; i < _number; i++){ _lotteryCollection.push(Lottery(i, false, false, address(0))); }
+        for(uint16 i = 0; i < _number; i++){ lotteryCollection.push(Lottery(i, false, false, address(0))); }
         uint _counter = 0;
         uint _randNonce = 0;
         uint _rand;
         while (_counter < _winNumber) {
             _rand = randMod(_randNonce, _number);
             _randNonce++;
-            if (_lotteryCollection[_rand].isWon == false){
-                _lotteryCollection[_rand].isWon = true;
+            if (lotteryCollection[_rand].isWon == false){
+                lotteryCollection[_rand].isWon = true;
                 _counter++;
             }
         }
-        lotteryCollection = _lotteryCollection;
     }
     
-    function buy(uint _randNonce) public onlyNotSoldOut payable {
+    function buy(uint _randNonce) public payable onlyNotSoldOut returns(uint) {
         uint _lotteryNumber;
-        do{ _lotteryNumber = randMod(_randNonce, lotteryCollection.length); } while (!lotteryCollection[_lotteryNumber].isSold);
+        do{
+            _lotteryNumber = randMod(_randNonce, lotteryCollection.length); 
+        } while (lotteryCollection[_lotteryNumber].isSold);
         lotteryCollection[_lotteryNumber].isSold = true;
         lotteryCollection[_lotteryNumber].purchaser = msg.sender;
         emit Buy(msg.sender, _lotteryNumber);
-        seller.transfer(msg.value);
+        // seller.transfer(msg.value);
+        return _lotteryNumber;
     }
   
-    function check(uint _lotteryNumber) public onlyPurchaser(_lotteryNumber) {
+    function check(uint _lotteryNumber) public onlyPurchaser(_lotteryNumber) payable {
         if (lotteryCollection[_lotteryNumber].isWon) {
             msg.sender.transfer(prize);
             emit Win(msg.sender, _lotteryNumber);
